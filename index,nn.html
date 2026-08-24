@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>মি ওয়ান সমিতি</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #212529;
+            --border-color: #dee2e6;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #f8f9fa;
+            --border-color: #333333;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+            color: var(--text-color);
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .nav-link {
+            cursor: pointer;
+            color: var(--text-color);
+        }
+
+        .nav-link.active {
+            font-weight: bold;
+            background-color: #0d6efd !important;
+            color: white !important;
+        }
+
+        .due-row {
+            background-color: rgba(220, 53, 69, 0.15) !important;
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .print-only { display: none; }
+
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background-color: white; color: black; }
+            .card { border: none; box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container py-3">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom no-print">
+        <h2 id="somityNameDisplay" class="m-0 text-primary">মি ওয়ান সমিতি</h2>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-outline-warning" id="adminLoginBtn" onclick="toggleAdminLogin()"><i class="fas fa-lock"></i> অ্যাডমিন লগইন</button>
+            <button class="btn btn-outline-secondary" id="themeToggle"><i class="fas fa-moon"></i></button>
+            <button class="btn btn-outline-primary" onclick="window.print()"><i class="fas fa-print"></i> প্রিন্ট</button>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <ul class="nav nav-pills mb-4 no-print flex-wrap" id="mainTab" role="tablist">
+        <li class="nav-item"><a class="nav-link active" onclick="switchTab('dashboard')"><i class="fas fa-chart-line"></i> ড্যাশবোর্ড</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="switchTab('members')"><i class="fas fa-users"></i> সদস্যবৃন্দ</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="switchTab('payments')"><i class="fas fa-money-bill-wave"></i> জমা/বকেয়া</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="switchTab('funds')"><i class="fas fa-wallet"></i> ফান্ড ও খাত</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="switchTab('reports')"><i class="fas fa-file-invoice"></i> রিপোর্ট</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="switchTab('settings')"><i class="fas fa-cog"></i> সেটিংস</a></li>
+    </ul>
+
+    <!-- Dashboard Section -->
+    <div id="dashboard" class="tab-content">
+        <div class="row">
+            <div class="col-md-4 col-6">
+                <div class="card text-center p-3 border-start border-primary border-4">
+                    <h5>মোট সদস্য</h5>
+                    <h3 id="dashTotalMembers">০</h3>
+                </div>
+            </div>
+            <div class="col-md-4 col-6">
+                <div class="card text-center p-3 border-start border-info border-4">
+                    <h5>মোট অংশ (Share)</h5>
+                    <h3 id="dashTotalShares">০</h3>
+                </div>
+            </div>
+            <div class="col-md-4 col-6">
+                <div class="card text-center p-3 border-start border-warning border-4">
+                    <h5>বর্তমান ফান্ড/স্থিতি</h5>
+                    <h3><span id="dashCurrentFund">০</span> ৳</h3>
+                </div>
+            </div>
+            <div class="col-md-6 col-6">
+                <div class="card text-center p-3 border-start border-success border-4">
+                    <h5>মোট জমা (ম্যানুয়াল)</h5>
+                    <h3><span id="dashTotalCollection">০</span> ৳</h3>
+                </div>
+            </div>
+            <div class="col-md-6 col-6">
+                <div class="card text-center p-3 border-start border-danger border-4">
+                    <h5>মোট বকেয়া (ম্যানুয়াল)</h5>
+                    <h3><span id="dashTotalDue">০</span> ৳</h3>
+                </div>
+            </div>
+        </div>
+        <div class="card p-3 no-print">
+            <h5>মাসভিত্তিক মোট আদায়</h5>
+            <canvas id="monthlyChart" height="100"></canvas>
+        </div>
+    </div>
+
+    <!-- Members Section -->
+    <div id="members" class="tab-content d-none">
+        <div class="card p-3 no-print">
+            <h5>নতুন সদস্য যোগ করুন (অ্যাডমিন)</h5>
+            <form id="memberForm" class="row g-3">
+                <div class="col-md-3">
+                    <input type="text" id="mName" class="form-control" placeholder="সদস্যের নাম (বাংলা/Eng)" required>
+                </div>
+                <div class="col-md-3">
+                    <input type="tel" id="mPhone" class="form-control" placeholder="মোবাইল নম্বর" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" id="mShare" class="form-control" placeholder="অংশ (ডিফল্ট: ১)" value="1" min="1" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="date" id="mDob" class="form-control" title="জন্মতারিখ (ঐচ্ছিক)">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-plus"></i> সেভ করুন</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+                <h5>সদস্য তালিকা</h5>
+                <input type="text" id="searchMember" class="form-control w-50" placeholder="নাম, আইডি বা মোবাইল দিয়ে খুঁজুন...">
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>আইডি</th>
+                            <th>নাম</th>
+                            <th>মোবাইল</th>
+                            <th>অংশ</th>
+                            <th>জন্মতারিখ</th>
+                            <th class="no-print">অ্যাকশন</th>
+                        </tr>
+                    </thead>
+                    <tbody id="memberTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payments Section -->
+    <div id="payments" class="tab-content d-none">
+        <div class="card p-3 no-print">
+            <h5>টাকা জমার এন্ট্রি (অ্যাডমিন)</h5>
+            <form id="paymentForm" class="row g-3">
+                <div class="col-md-3">
+                    <select id="pMemberId" class="form-select" required>
+                        <option value="">সদস্য নির্বাচন করুন...</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select id="pMonth" class="form-select" required></select>
+                </div>
+                <div class="col-md-3">
+                    <input type="number" id="pAmount" class="form-control" placeholder="টাকার পরিমাণ (e.g. ১০০০/২০০০)" required>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-success w-100"><i class="fas fa-check"></i> জমা দিন</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5>মাসিক হিসাব এবং বকেয়া স্থিতি</h5>
+                <select id="filterMonth" class="form-select w-auto no-print" onchange="renderPayments()"></select>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>আইডি</th>
+                            <th>নাম</th>
+                            <th>মোবাইল</th>
+                            <th>মাসিক প্রাপ্য</th>
+                            <th>জমা</th>
+                            <th>বকেয়া</th>
+                            <th class="no-print">অ্যাকশন</th>
+                        </tr>
+                    </thead>
+                    <tbody id="paymentTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Funds & Allocation Section -->
+    <div id="funds" class="tab-content d-none">
+        <div class="card p-3 no-print">
+            <h5>নতুন খাতের বা ব্যক্তির কাছে টাকা হিসাব যোগ করুন (অ্যাডমিন)</h5>
+            <form id="fundForm" class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" id="fName" class="form-control" placeholder="খাত বা ব্যক্তির নাম (যেমন: ব্যাংক, ক্যাশ, রহিম)" required>
+                </div>
+                <div class="col-md-3">
+                    <input type="number" id="fAmount" class="form-control" placeholder="টাকার পরিমাণ (৳)" required>
+                </div>
+                <div class="col-md-3">
+                    <input type="text" id="fNote" class="form-control" placeholder="মন্তব্য (ঐচ্ছিক)">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-warning w-100"><i class="fas fa-plus"></i> যোগ করুন</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card p-3">
+            <h5>ফান্ড ও খাতের বিতরণ তালিকা</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>খাত / ব্যক্তির নাম</th>
+                            <th>টাকার পরিমাণ (৳)</th>
+                            <th>মন্তব্য</th>
+                            <th class="no-print">অ্যাকশন</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fundTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reports Section -->
+    <div id="reports" class="tab-content d-none">
+        <div class="card p-3">
+            <h5>সমিতির সার্বিক রিপোর্ট</h5>
+            <p><strong>তারিখ:</strong> <span id="reportDate"></span></p>
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered">
+                    <thead>
+                        <tr>
+                            <th>আইডি</th>
+                            <th>সদস্যের নাম</th>
+                            <th>মোট শেয়ার</th>
+                            <th>মোট পরিশোধিত</th>
+                            <th>মোট বকেয়া</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Section -->
+    <div id="settings" class="tab-content d-none">
+        <div class="card p-3">
+            <h5>সমিতি কনফিগারেশন ও সিকিউরিটি</h5>
+            <div class="row g-3 border-bottom pb-3 mb-3">
+                <div class="col-md-3">
+                    <label class="form-label">সমিতির নাম</label>
+                    <input type="text" id="settingSomityName" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">প্রতি অংশের (Share) মূল্য (৳)</label>
+                    <input type="number" id="settingSharePrice" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">অ্যাডমিন ১ পিন (PIN)</label>
+                    <input type="password" id="settingAdminPin1" class="form-control" maxlength="6" placeholder="Default: 1234">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">অ্যাডমিন ২ পিন (ঐচ্ছিক)</label>
+                    <input type="password" id="settingAdminPin2" class="form-control" maxlength="6" placeholder="Optional">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">মোট জমা (ম্যানুয়াল)</label>
+                    <input type="number" id="settingTotalCollection" class="form-control">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">মোট বকেয়া (ম্যানুয়াল)</label>
+                    <input type="number" id="settingTotalDue" class="form-control">
+                </div>
+                <div class="col-12 mt-3 text-end">
+                    <button class="btn btn-primary" onclick="saveSettings()"><i class="fas fa-save"></i> সেটিংস আপডেট করুন</button>
+                </div>
+            </div>
+
+            <h5>ডেটা ব্যাকআপ ও রিস্টোর (অ্যাডমিন)</h5>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-success" onclick="exportData()"><i class="fas fa-download"></i> ব্যাকআপ ডাউনলোড (JSON)</button>
+                <input type="file" id="importFile" class="d-none" onchange="importData(event)">
+                <button class="btn btn-outline-warning" onclick="triggerImport()"><i class="fas fa-upload"></i> রিস্টোর করুন</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Receipt Modal -->
+<div class="modal fade" id="receiptModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">টাকা জমার রসিদ</h5>
+                <button type="button" class="btn-close no-print" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="receiptBody"></div>
+            <div class="modal-footer no-print">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">বন্ধ করুন</button>
+                <button type="button" class="btn btn-primary" onclick="window.print()">প্রিন্ট করুন</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const MONTHS = ["এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর", "জানুয়ারি", "ফেব্রুয়ারি", "মার্চ"];
+    
+    let appData = {
+        settings: { 
+            name: "মি ওয়ান সমিতি", 
+            sharePrice: 1000,
+            manualCollection: 0,
+            manualDue: 0,
+            adminPins: ["1234", ""]
+        },
+        members: [],
+        payments: {}, 
+        fundItems: [], 
+        receiptCount: 1001
+    };
+
+    let monthlyChartObj = null;
+    let isAdminLoggedIn = false; // Session-based Admin State
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadData();
+        setupMonthDropdowns();
+        renderAll();
+        
+        document.getElementById('settingSomityName').value = appData.settings.name;
+        document.getElementById('settingSharePrice').value = appData.settings.sharePrice;
+        document.getElementById('settingTotalCollection').value = appData.settings.manualCollection || 0;
+        document.getElementById('settingTotalDue').value = appData.settings.manualDue || 0;
+        document.getElementById('settingAdminPin1').value = appData.settings.adminPins ? appData.settings.adminPins[0] : "1234";
+        document.getElementById('settingAdminPin2').value = (appData.settings.adminPins && appData.settings.adminPins[1]) ? appData.settings.adminPins[1] : "";
+        
+        if(localStorage.getItem('theme') === 'dark') {
+            document.body.setAttribute('data-theme', 'dark');
+        }
+    });
+
+    // One-time Admin Login Verification
+    function verifyAdmin() {
+        if (isAdminLoggedIn) return true;
+
+        const pinInput = prompt("অ্যাডমিন সুবিধা ব্যবহার করতে একবার সিকিউরিটি পিন (PIN) দিন:");
+        if (pinInput === null) return false;
+        
+        const validPins = appData.settings.adminPins.filter(p => p !== "");
+        if (validPins.includes(pinInput.trim())) {
+            isAdminLoggedIn = true;
+            updateAdminButtonUI();
+            alert("অ্যাডমিন মোড সক্রিয় হয়েছে! এই সেশনে আর পিন দিতে হবে না।");
+            return true;
+        } else {
+            alert("ভুল পিন কোড!");
+            return false;
+        }
+    }
+
+    function toggleAdminLogin() {
+        if (isAdminLoggedIn) {
+            isAdminLoggedIn = false;
+            updateAdminButtonUI();
+            alert("অ্যাডমিন মোড থেকে লগআউট করা হয়েছে।");
+        } else {
+            verifyAdmin();
+        }
+    }
+
+    function updateAdminButtonUI() {
+        const btn = document.getElementById('adminLoginBtn');
+        if (isAdminLoggedIn) {
+            btn.className = "btn btn-success";
+            btn.innerHTML = `<i class="fas fa-unlock"></i> অ্যাডমিন (Unlocked)`;
+        } else {
+            btn.className = "btn btn-outline-warning";
+            btn.innerHTML = `<i class="fas fa-lock"></i> অ্যাডমিন লগইন`;
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem('me_one_somity_data', JSON.stringify(appData));
+        renderAll();
+    }
+
+    function loadData() {
+        const stored = localStorage.getItem('me_one_somity_data');
+        if(stored) {
+            appData = JSON.parse(stored);
+            if(!appData.fundItems) appData.fundItems = [];
+            if(!appData.settings.adminPins) appData.settings.adminPins = ["1234", ""];
+        }
+    }
+
+    function setupMonthDropdowns() {
+        const pMonth = document.getElementById('pMonth');
+        const filterMonth = document.getElementById('filterMonth');
+        
+        MONTHS.forEach(m => {
+            pMonth.innerHTML += `<option value="${m}">${m}</option>`;
+            filterMonth.innerHTML += `<option value="${m}">${m}</option>`;
+        });
+    }
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('d-none'));
+        document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+        
+        document.getElementById(tabId).classList.remove('d-none');
+        event.target.classList.add('active');
+        
+        if(tabId === 'dashboard') renderChart();
+    }
+
+    // Member Logic
+    document.getElementById('memberForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!verifyAdmin()) return;
+
+        const id = 'M' + (appData.members.length + 1).toString().padStart(3, '0');
+        const newMember = {
+            id: id,
+            name: document.getElementById('mName').value,
+            phone: document.getElementById('mPhone').value,
+            share: parseInt(document.getElementById('mShare').value) || 1,
+            dob: document.getElementById('mDob').value || 'N/A'
+        };
+        appData.members.push(newMember);
+        saveData();
+        e.target.reset();
+        document.getElementById('mShare').value = 1;
+    });
+
+    function deleteMember(id) {
+        if (!verifyAdmin()) return;
+        if(confirm('আপনি কি এই সদস্যকে মুছে ফেলতে চান?')) {
+            appData.members = appData.members.filter(m => m.id !== id);
+            saveData();
+        }
+    }
+
+    // Payment Logic
+    document.getElementById('paymentForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!verifyAdmin()) return;
+
+        const memberId = document.getElementById('pMemberId').value;
+        const month = document.getElementById('pMonth').value;
+        const amount = parseFloat(document.getElementById('pAmount').value);
+        
+        const key = `${memberId}_${month}`;
+        appData.payments[key] = (appData.payments[key] || 0) + amount;
+        
+        showReceipt(memberId, month, amount);
+        saveData();
+        e.target.reset();
+    });
+
+    function showReceipt(memberId, month, amount) {
+        const member = appData.members.find(m => m.id === memberId);
+        const receiptNo = appData.receiptCount++;
+        
+        const receiptHtml = `
+            <div class="text-center mb-3">
+                <h4>${appData.settings.name}</h4>
+                <p>টাকা জমার রসিদ</p>
+            </div>
+            <hr>
+            <p><strong>রসিদ নং:</strong> #${receiptNo}</p>
+            <p><strong>তারিখ:</strong> ${new Date().toLocaleDateString('bn-BD')}</p>
+            <p><strong>সদস্য আইডি:</strong> ${member.id}</p>
+            <p><strong>নাম:</strong> ${member.name}</p>
+            <p><strong>মাস:</strong> ${month}</p>
+            <p><strong>জমা কৃত টাকা:</strong> ${amount} ৳</p>
+        `;
+        document.getElementById('receiptBody').innerHTML = receiptHtml;
+        new bootstrap.Modal(document.getElementById('receiptModal')).show();
+    }
+
+    // Fund Management Logic
+    document.getElementById('fundForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!verifyAdmin()) return;
+
+        const newFund = {
+            id: Date.now(),
+            name: document.getElementById('fName').value,
+            amount: parseFloat(document.getElementById('fAmount').value) || 0,
+            note: document.getElementById('fNote').value || '-'
+        };
+        appData.fundItems.push(newFund);
+        saveData();
+        e.target.reset();
+    });
+
+    function updateFundAmount(id) {
+        if (!verifyAdmin()) return;
+
+        const fund = appData.fundItems.find(f => f.id === id);
+        if(!fund) return;
+
+        const newAmountStr = prompt(`"${fund.name}"-এর নতুন টাকার পরিমাণ কিবোর্ড থেকে ইনপুট দিন:`, fund.amount);
+        if(newAmountStr !== null) {
+            const newAmount = parseFloat(newAmountStr);
+            if(!isNaN(newAmount)) {
+                fund.amount = newAmount;
+                saveData();
+            } else {
+                alert("সঠিক সংখ্যা ইনপুট দিন!");
+            }
+        }
+    }
+
+    function deleteFund(id) {
+        if (!verifyAdmin()) return;
+        if(confirm('আপনি কি এই খাত বা এন্ট্রিটি মুছে ফেলতে চান?')) {
+            appData.fundItems = appData.fundItems.filter(f => f.id !== id);
+            saveData();
+        }
+    }
+
+    // Render Views
+    function renderAll() {
+        document.getElementById('somityNameDisplay').innerText = appData.settings.name;
+        renderMembers();
+        renderPayments();
+        renderFunds();
+        renderDashboard();
+        renderReports();
+    }
+
+    function renderMembers() {
+        const tbody = document.getElementById('memberTableBody');
+        const pSelect = document.getElementById('pMemberId');
+        const search = document.getElementById('searchMember')?.value.toLowerCase() || '';
+        
+        tbody.innerHTML = '';
+        pSelect.innerHTML = '<option value="">সদস্য নির্বাচন করুন...</option>';
+
+        appData.members.forEach(m => {
+            pSelect.innerHTML += `<option value="${m.id}">${m.name} (${m.id})</option>`;
+
+            if(m.name.toLowerCase().includes(search) || m.phone.includes(search) || m.id.toLowerCase().includes(search)) {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${m.id}</td>
+                        <td>${m.name}</td>
+                        <td>
+                            ${m.phone} 
+                            <a href="tel:${m.phone}" class="btn btn-sm btn-outline-success ms-1 no-print"><i class="fas fa-phone"></i></a>
+                        </td>
+                        <td>${m.share}</td>
+                        <td>${m.dob}</td>
+                        <td class="no-print">
+                            <button class="btn btn-sm btn-danger" onclick="deleteMember('${m.id}')"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }
+        });
+    }
+
+    function renderPayments() {
+        const selectedMonth = document.getElementById('filterMonth').value || MONTHS[0];
+        const tbody = document.getElementById('paymentTableBody');
+        tbody.innerHTML = '';
+
+        appData.members.forEach(m => {
+            const expectedAmount = m.share * appData.settings.sharePrice;
+            const key = `${m.id}_${selectedMonth}`;
+            const paid = appData.payments[key] || 0;
+            const due = expectedAmount - paid;
+            
+            const rowClass = due > 0 ? 'due-row' : '';
+
+            tbody.innerHTML += `
+                <tr class="${rowClass}">
+                    <td>${m.id}</td>
+                    <td>${m.name}</td>
+                    <td>${m.phone}</td>
+                    <td>${expectedAmount} ৳</td>
+                    <td>${paid} ৳</td>
+                    <td>${due > 0 ? due + ' ৳ (বকেয়া)' : 'পরিশোধিত'}</td>
+                    <td class="no-print">
+                        <button class="btn btn-sm btn-primary" onclick="quickPay('${m.id}', '${selectedMonth}', ${due})">কুইক পে</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function renderFunds() {
+        const tbody = document.getElementById('fundTableBody');
+        tbody.innerHTML = '';
+
+        appData.fundItems.forEach(f => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>${f.name}</strong></td>
+                    <td><span class="badge bg-success text-wrap fs-6">${f.amount} ৳</span></td>
+                    <td>${f.note}</td>
+                    <td class="no-print">
+                        <button class="btn btn-sm btn-warning me-1" onclick="updateFundAmount(${f.id})"><i class="fas fa-edit"></i> টাকা এডিট</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteFund(${f.id})"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function quickPay(id, month, due) {
+        if(due <= 0) return alert('কোন বকেয়া নেই!');
+        document.getElementById('pMemberId').value = id;
+        document.getElementById('pMonth').value = month;
+        document.getElementById('pAmount').value = due;
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    function renderDashboard() {
+        let totalMembers = appData.members.length;
+        let totalShares = appData.members.reduce((acc, m) => acc + m.share, 0);
+        let currentFund = appData.fundItems.reduce((acc, f) => acc + f.amount, 0);
+
+        document.getElementById('dashTotalMembers').innerText = totalMembers;
+        document.getElementById('dashTotalShares').innerText = totalShares;
+        document.getElementById('dashCurrentFund').innerText = currentFund;
+        document.getElementById('dashTotalCollection').innerText = appData.settings.manualCollection || 0;
+        document.getElementById('dashTotalDue').innerText = appData.settings.manualDue || 0;
+    }
+
+    function renderChart() {
+        const ctx = document.getElementById('monthlyChart').getContext('2d');
+        const monthlyTotals = MONTHS.map(m => {
+            return appData.members.reduce((acc, member) => {
+                return acc + (appData.payments[`${member.id}_${m}`] || 0);
+            }, 0);
+        });
+
+        if(monthlyChartObj) monthlyChartObj.destroy();
+
+        monthlyChartObj = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: MONTHS,
+                datasets: [{
+                    label: 'মাসিক সংগৃহীত কিস্তি (৳)',
+                    data: monthlyTotals,
+                    backgroundColor: '#0d6efd'
+                }]
+            },
+            options: { responsive: true }
+        });
+    }
+
+    function renderReports() {
+        document.getElementById('reportDate').innerText = new Date().toLocaleDateString('bn-BD');
+        const tbody = document.getElementById('reportTableBody');
+        tbody.innerHTML = '';
+
+        appData.members.forEach(m => {
+            let totalPaid = 0;
+            MONTHS.forEach(mon => {
+                totalPaid += (appData.payments[`${m.id}_${mon}`] || 0);
+            });
+            let totalExpected = m.share * appData.settings.sharePrice * MONTHS.length;
+            let due = totalExpected - totalPaid;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>${m.id}</td>
+                    <td>${m.name}</td>
+                    <td>${m.share}</td>
+                    <td>${totalPaid} ৳</td>
+                    <td>${due > 0 ? due + ' ৳' : '০ ৳'}</td>
+                </tr>
+            `;
+        });
+    }
+
+    // Settings & Backup
+    function saveSettings() {
+        if (!verifyAdmin()) return;
+
+        appData.settings.name = document.getElementById('settingSomityName').value;
+        appData.settings.sharePrice = parseFloat(document.getElementById('settingSharePrice').value) || 1000;
+        appData.settings.manualCollection = parseFloat(document.getElementById('settingTotalCollection').value) || 0;
+        appData.settings.manualDue = parseFloat(document.getElementById('settingTotalDue').value) || 0;
+        
+        const pin1 = document.getElementById('settingAdminPin1').value.trim();
+        const pin2 = document.getElementById('settingAdminPin2').value.trim();
+        appData.settings.adminPins = [pin1 || "1234", pin2];
+
+        saveData();
+        alert('সেটিংস এবং অ্যাডমিন পিন সফলভাবে আপডেট হয়েছে!');
+    }
+
+    function exportData() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `somity_backup_${new Date().toISOString().slice(0,10)}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    }
+
+    function triggerImport() {
+        if (!verifyAdmin()) return;
+        document.getElementById('importFile').click();
+    }
+
+    function importData(e) {
+        const fileReader = new FileReader();
+        fileReader.onload = function (event) {
+            try {
+                appData = JSON.parse(event.target.result);
+                if(!appData.fundItems) appData.fundItems = [];
+                if(!appData.settings.adminPins) appData.settings.adminPins = ["1234", ""];
+                saveData();
+                alert('ডেটা সফলভাবে রিস্টোর হয়েছে!');
+            } catch (err) {
+                alert('ভুল ফাইল ফরম্যাট!');
+            }
+        };
+        fileReader.readAsText(e.target.files[0]);
+    }
+
+    // Search event
+    document.getElementById('searchMember').addEventListener('keyup', renderMembers);
+
+    // Dark Mode Toggle
+    document.getElementById('themeToggle').addEventListener('click', () => {
+        if(document.body.getAttribute('data-theme') === 'dark') {
+            document.body.removeAttribute('data-theme');
+            localStorage.setItem('theme', 'light');
+        } else {
+            document.body.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+        }
+    });
+</script>
+</body>
+</html>
